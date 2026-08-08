@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BookMind UI Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-menu" aria-label="기능 메뉴">
+        <button class="menu-item" data-screen="ai-note">AI 독서 노트</button>
+        <button class="menu-item" data-screen="ai-quiz">AI 독서 퀴즈</button>
+        <button class="menu-item" data-screen="memory-report">AI 기능 복습</button>
+        <button class="menu-item" data-screen="essay-refine">AI 독후감 도우미</button>
+        <button class="menu-item" data-screen="load-file">AI 필사 불러오기</button>
+        <button class="menu-item" data-screen="save-copy">AI 필사 저장</button>
+      </nav>
+
+      <header class="hero" id="home">
+        <p class="eyebrow">메인 화면</p>
+      </header>
+
+      <section class="core-grid" id="core-grid">
+        <button class="core-card" data-screen="book-add">책 등록하기</button>
+        <button class="core-card" data-screen="book-list">읽은 책 목록 보기</button>
+        <button class="core-card" data-screen="note-open">독서 노트 열기</button>
+        <button class="core-card" data-screen="review-today">오늘 복습 시작</button>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
