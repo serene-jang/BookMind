@@ -65,6 +65,10 @@
 
           <div class="book-add-form" id="book-add-form" style="display: none;">
             <div class="form-group">
+              <h3 id="book-form-title" style="margin: 0 0 16px 0; color: #2d2d3d;">책 추가</h3>
+              <input type="hidden" id="edit-book-idx" value="">
+            </div>
+            <div class="form-group">
               <label>책 제목</label>
               <input type="text" id="book-title" placeholder="책 제목을 입력하세요">
             </div>
@@ -124,6 +128,8 @@
           <div class="record-section">
             <h2 class="section-title">독서 노트</h2>
             <div class="note-form">
+              <input type="hidden" id="edit-note-idx" value="">
+              
               <label>책 선택</label>
               <select id="note-book-select">
                 <option value="">책을 선택하세요</option>

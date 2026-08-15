@@ -469,6 +469,10 @@ html, body {
   padding: 12px;
   border-radius: 10px;
   border-left: 4px solid var(--brand);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .note-item .note-book {

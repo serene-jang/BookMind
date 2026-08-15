@@ -1,6 +1,6 @@
 /**
- * BookMind - STEP 1 메인 앱 로직
- * 탭 네비게이션 및 기본 렌더링만 구현
+ * BookMind - STEP 2 메인 앱 로직
+ * 실제 복습 일정 + 기억률 계산 + 책/기록 수정/삭제
  */
 
 // ===== 저장소 유틸 =====
@@ -24,6 +24,32 @@ const storage = {
     });
   }
 };
+
+// ===== 유틸 함수 =====
+function daysFromToday(dateString) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(dateString);
+  date.setHours(0, 0, 0, 0);
+  const diffTime = date - today;
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
+function calculateMemoryRate(bookIdx) {
+  const notes = storage.get('notes') || [];
+  const bookNotes = notes.filter(n => n.bookIdx === bookIdx);
+  if (bookNotes.length === 0) return 0;
+  
+  const avgRating = bookNotes.reduce((sum, n) => sum + (n.rating || 0), 0) / bookNotes.length;
+  return Math.round(avgRating * 20); // 5점 만점 * 20 = 100점 만점
+}
+
+function getNextReviewDate(startDate, reviewScheduleDay) {
+  const start = new Date(startDate);
+  const nextDate = new Date(start);
+  nextDate.setDate(nextDate.getDate() + reviewScheduleDay);
+  return nextDate.toISOString().split('T')[0];
+}
 
 // ===== 초기 데이터 =====
 function initData() {
@@ -89,6 +115,7 @@ function renderTab(tabName) {
 // ===== 홈 화면 렌더링 =====
 function renderHome() {
   const books = storage.get('books') || [];
+  const notes = storage.get('notes') || [];
 
   // 오늘의 독서 (최근 추가된 책)
   const todayBookEl = document.getElementById('today-book');
@@ -104,26 +131,54 @@ function renderHome() {
     todayBookEl.innerHTML = '<p class="muted">아직 등록된 책이 없습니다.</p>';
   }
 
-  // 오늘 복습할 책 (시뮬레이션)
+  // 오늘 복습할 책 (실제 일정 계산)
   const reviewListEl = document.getElementById('review-list');
-  if (books.length > 0) {
-    const reviewItems = books.slice(0, 2).map(book => `
-      <div class="review-item">
-        <div>
-          <p class="book-name">${book.title}</p>
-          <p class="review-days">읽은 지 ${Math.floor(Math.random() * 30) + 1}일</p>
+  const reviewsToday = [];
+  
+  books.forEach((book, idx) => {
+    const reviewSchedule = [1, 3, 7, 14, 30];
+    reviewSchedule.forEach(day => {
+      const nextReviewDate = getNextReviewDate(book.startDate, day);
+      const daysDiff = daysFromToday(nextReviewDate);
+      if (daysDiff <= 0 && daysDiff > -3) { // 오늘 또는 최근 복습 예정일
+        reviewsToday.push({
+          title: book.title,
+          nextDate: nextReviewDate,
+          daysDiff: daysDiff
+        });
+      }
+    });
+  });
+
+  if (reviewsToday.length > 0) {
+    const reviewItems = reviewsToday.slice(0, 3).map(review => {
+      const dayText = review.daysDiff === 0 ? '오늘' : `${Math.abs(review.daysDiff)}일 전`;
+      return `
+        <div class="review-item">
+          <div>
+            <p class="book-name">${review.title}</p>
+            <p class="review-days">${dayText} 복습 예정</p>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     reviewListEl.innerHTML = reviewItems;
   } else {
     reviewListEl.innerHTML = '<p class="muted">복습할 책이 없습니다.</p>';
   }
 
-  // 기억률 (시뮬레이션)
-  const avgMemory = books.length > 0 ? Math.floor(Math.random() * 30) + 70 : 0;
-  document.getElementById('avg-memory').textContent = avgMemory;
+  // 평균 기억률
+  if (books.length > 0) {
+    const memoryRates = books.map((_, idx) => calculateMemoryRate(idx));
+    const avgMemory = memoryRates.length > 0 
+      ? Math.round(memoryRates.reduce((a, b) => a + b) / memoryRates.length)
+      : 0;
+    document.getElementById('avg-memory').textContent = avgMemory;
+  } else {
+    document.getElementById('avg-memory').textContent = 0;
+  }
 }
+
 
 // ===== 내 책 탭 렌더링 =====
 function renderBooks() {
@@ -132,6 +187,7 @@ function renderBooks() {
 
   if (books.length === 0) {
     bookListEl.innerHTML = '<p class="muted">등록된 책이 없습니다.</p>';
+    updateBookSelectList([]);
     return;
   }
 
@@ -140,17 +196,19 @@ function renderBooks() {
       <div class="book-info">
         <p class="book-title">${book.title}</p>
         <p class="book-author">${book.author}</p>
-        <span class="book-status">${book.status === 'reading' ? '읽는 중' : '완독'}</span>
+        <div style="display: flex; gap: 6px; margin-top: 8px; font-size: 12px;">
+          <span class="book-status">${book.status === 'reading' ? '읽는 중' : '완독'}</span>
+          <span style="color: #7c5cde; font-weight: 600;">기억률: ${calculateMemoryRate(idx)}%</span>
+        </div>
       </div>
       <div class="book-actions">
+        <button class="btn" onclick="editBook(${idx})" style="padding: 6px 8px; font-size: 12px;">수정</button>
         <button class="btn" onclick="deleteBook(${idx})" style="padding: 6px 8px; font-size: 12px;">삭제</button>
       </div>
     </div>
   `).join('');
 
   bookListEl.innerHTML = bookHTML;
-
-  // 책 선택 드롭다운도 업데이트
   updateBookSelectList(books);
 }
 
@@ -166,34 +224,52 @@ function updateBookSelectList(books) {
 function renderMemory() {
   const books = storage.get('books') || [];
 
-  // 복습 스케줄
+  // 복습 스케줄 (실제 계산)
   const scheduleEl = document.getElementById('review-schedule');
   if (books.length === 0) {
     scheduleEl.innerHTML = '<p class="muted">복습할 책이 없습니다.</p>';
   } else {
     const scheduleHTML = books.map((book, idx) => {
       const reviewDays = [1, 3, 7, 14, 30];
-      const randomDay = reviewDays[Math.floor(Math.random() * reviewDays.length)];
+      
+      // 첫 번째 아직 완료 안 된 복습 찾기
+      let nextReview = null;
+      let nextReviewDay = null;
+      
+      for (let day of reviewDays) {
+        const nextDate = getNextReviewDate(book.startDate, day);
+        const daysDiff = daysFromToday(nextDate);
+        if (daysDiff >= 0) {
+          nextReview = nextDate;
+          nextReviewDay = day;
+          break;
+        }
+      }
+      
+      const dayText = nextReviewDay 
+        ? `${nextReviewDay}일 차 복습 예정` 
+        : '모든 복습 완료';
+
       return `
         <div class="schedule-item">
           <div class="schedule-info">
             <p class="book-name">${book.title}</p>
-            <p class="schedule-days">${randomDay}일 뒤 복습 예정</p>
+            <p class="schedule-days">${dayText}</p>
           </div>
-          <button class="schedule-btn" onclick="alert('복습 기능은 STEP 2에서 구현됩니다.')">복습</button>
+          <button class="schedule-btn" onclick="reviewBook(${idx})">복습</button>
         </div>
       `;
     }).join('');
     scheduleEl.innerHTML = scheduleHTML;
   }
 
-  // 책별 기억률
+  // 책별 기억률 (정확한 계산)
   const memoryListEl = document.getElementById('memory-list');
   if (books.length === 0) {
     memoryListEl.innerHTML = '<p class="muted">아직 분석 데이터가 없습니다.</p>';
   } else {
-    const memoryHTML = books.map(book => {
-      const memory = Math.floor(Math.random() * 100);
+    const memoryHTML = books.map((book, idx) => {
+      const memory = calculateMemoryRate(idx);
       return `
         <div class="memory-card">
           <p class="book-name">${book.title}</p>
@@ -207,6 +283,7 @@ function renderMemory() {
     memoryListEl.innerHTML = memoryHTML;
   }
 }
+
 
 // ===== 기록 탭 렌더링 =====
 function renderRecord() {
@@ -222,13 +299,19 @@ function renderRecord() {
     const books = storage.get('books') || [];
     const book = books[note.bookIdx];
     const bookTitle = book ? book.title : '알 수 없는 책';
-    const previewText = note.content?.substring(0, 60) || '';
+    const previewText = note.content?.substring(0, 50) || '';
 
     return `
       <div class="note-item">
-        <p class="note-book">${bookTitle}</p>
-        <p class="note-date">${new Date(note.date).toLocaleDateString('ko-KR')}</p>
-        <p class="note-preview">${previewText}...</p>
+        <div style="flex: 1;">
+          <p class="note-book">${bookTitle}</p>
+          <p class="note-date">${new Date(note.date).toLocaleDateString('ko-KR')}</p>
+          <p class="note-preview">${previewText}...</p>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn" onclick="editNote(${idx})" style="padding: 6px 8px; font-size: 12px;">수정</button>
+          <button class="btn" onclick="deleteNote(${idx})" style="padding: 6px 8px; font-size: 12px;">삭제</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -244,11 +327,17 @@ function renderMy() {
 
   document.getElementById('stat-books').textContent = books.length;
   document.getElementById('stat-notes').textContent = notes.length;
-  document.getElementById('stat-reviews').textContent = reviews.length;
+  document.getElementById('stat-reviews').textContent = reviews.length || 0;
 }
 
 // ===== 책 추가 폼 =====
 function openAddBookForm() {
+  document.getElementById('edit-book-idx').value = '';
+  document.getElementById('book-title').value = '';
+  document.getElementById('book-author').value = '';
+  document.getElementById('book-start-date').value = '';
+  document.getElementById('book-status').value = 'reading';
+  document.getElementById('book-form-title').textContent = '책 추가';
   document.getElementById('book-add-form').style.display = 'block';
   document.getElementById('book-title').focus();
 }
@@ -257,11 +346,26 @@ function closeAddBookForm() {
   document.getElementById('book-add-form').style.display = 'none';
 }
 
+function editBook(idx) {
+  const books = storage.get('books') || [];
+  const book = books[idx];
+  
+  document.getElementById('edit-book-idx').value = idx;
+  document.getElementById('book-title').value = book.title;
+  document.getElementById('book-author').value = book.author;
+  document.getElementById('book-start-date').value = book.startDate;
+  document.getElementById('book-status').value = book.status;
+  document.getElementById('book-form-title').textContent = '책 수정';
+  document.getElementById('book-add-form').style.display = 'block';
+  document.getElementById('book-title').focus();
+}
+
 function saveBook() {
   const title = document.getElementById('book-title').value.trim();
   const author = document.getElementById('book-author').value.trim();
   const startDate = document.getElementById('book-start-date').value;
   const status = document.getElementById('book-status').value;
+  const editIdx = document.getElementById('edit-book-idx').value;
 
   if (!title || !author) {
     alert('제목과 저자를 입력해주세요.');
@@ -269,46 +373,63 @@ function saveBook() {
   }
 
   const books = storage.get('books') || [];
-  books.push({
-    title,
-    author,
-    startDate: startDate || new Date().toISOString().split('T')[0],
-    status,
-    createdAt: new Date().toISOString()
-  });
+
+  if (editIdx !== '') {
+    // 수정
+    books[editIdx].title = title;
+    books[editIdx].author = author;
+    books[editIdx].startDate = startDate;
+    books[editIdx].status = status;
+    alert('책이 수정되었습니다!');
+  } else {
+    // 추가
+    books.push({
+      title,
+      author,
+      startDate: startDate || new Date().toISOString().split('T')[0],
+      status,
+      createdAt: new Date().toISOString()
+    });
+    alert('책이 저장되었습니다!');
+  }
 
   storage.set('books', books);
 
-  // 폼 초기화
-  document.getElementById('book-title').value = '';
-  document.getElementById('book-author').value = '';
-  document.getElementById('book-start-date').value = '';
-  document.getElementById('book-status').value = 'reading';
-
   closeAddBookForm();
   renderBooks();
-  renderHome(); // 홈 화면도 업데이트
-
-  alert('책이 저장되었습니다!');
+  renderHome();
+  renderMemory();
 }
 
 function deleteBook(idx) {
-  if (confirm('이 책을 삭제하시겠습니까?')) {
+  if (confirm('이 책을 삭제하시겠습니까?\n책의 모든 기록도 함께 삭제됩니다.')) {
     const books = storage.get('books') || [];
+    const notes = storage.get('notes') || [];
+    
+    // 책의 모든 기록도 삭제
+    const filteredNotes = notes.filter(n => n.bookIdx !== idx);
+    storage.set('notes', filteredNotes);
+    
     books.splice(idx, 1);
     storage.set('books', books);
+    
     renderBooks();
     renderHome();
+    renderRecord();
+    renderMemory();
+    renderMy();
   }
 }
 
-// ===== 독서 기록 저장 =====
+
+// ===== 독서 기록 저장/수정 =====
 function saveNote() {
   const bookIdx = document.getElementById('note-book-select').value;
   const content = document.getElementById('note-content').value.trim();
   const impressive = document.getElementById('note-impressive').value.trim();
   const thoughts = document.getElementById('note-thoughts').value.trim();
   const rating = document.getElementById('note-rating').value;
+  const editIdx = document.getElementById('edit-note-idx').value;
 
   if (!bookIdx) {
     alert('책을 선택해주세요.');
@@ -321,18 +442,32 @@ function saveNote() {
   }
 
   const notes = storage.get('notes') || [];
-  notes.push({
-    bookIdx: parseInt(bookIdx),
-    content,
-    impressive,
-    thoughts,
-    rating: parseFloat(rating),
-    date: new Date().toISOString()
-  });
+
+  if (editIdx !== '') {
+    // 수정
+    notes[editIdx].bookIdx = parseInt(bookIdx);
+    notes[editIdx].content = content;
+    notes[editIdx].impressive = impressive;
+    notes[editIdx].thoughts = thoughts;
+    notes[editIdx].rating = parseFloat(rating);
+    alert('기록이 수정되었습니다!');
+  } else {
+    // 추가
+    notes.push({
+      bookIdx: parseInt(bookIdx),
+      content,
+      impressive,
+      thoughts,
+      rating: parseFloat(rating),
+      date: new Date().toISOString()
+    });
+    alert('기록이 저장되었습니다!');
+  }
 
   storage.set('notes', notes);
 
   // 폼 초기화
+  document.getElementById('edit-note-idx').value = '';
   document.getElementById('note-book-select').value = '';
   document.getElementById('note-content').value = '';
   document.getElementById('note-impressive').value = '';
@@ -342,8 +477,54 @@ function saveNote() {
 
   renderRecord();
   renderMy();
+  renderHome();
+  renderMemory();
+}
 
-  alert('기록이 저장되었습니다!');
+function editNote(idx) {
+  const notes = storage.get('notes') || [];
+  const note = notes[idx];
+  
+  document.getElementById('edit-note-idx').value = idx;
+  document.getElementById('note-book-select').value = note.bookIdx;
+  document.getElementById('note-content').value = note.content;
+  document.getElementById('note-impressive').value = note.impressive;
+  document.getElementById('note-thoughts').value = note.thoughts;
+  document.getElementById('note-rating').value = note.rating;
+  document.getElementById('rating-display').textContent = `⭐ ${note.rating.toFixed(1)}`;
+  
+  // 스크롤해서 폼으로 이동
+  document.getElementById('note-book-select').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('note-content').focus();
+}
+
+function deleteNote(idx) {
+  if (confirm('이 기록을 삭제하시겠습니까?')) {
+    const notes = storage.get('notes') || [];
+    notes.splice(idx, 1);
+    storage.set('notes', notes);
+    renderRecord();
+    renderMy();
+    renderHome();
+    renderMemory();
+  }
+}
+
+// ===== 복습 기능 =====
+function reviewBook(bookIdx) {
+  if (confirm(`이 책을 복습했습니까?`)) {
+    const reviews = storage.get('reviews') || [];
+    reviews.push({
+      bookIdx,
+      date: new Date().toISOString(),
+      completed: true
+    });
+    storage.set('reviews', reviews);
+    renderMemory();
+    renderHome();
+    renderMy();
+    alert('복습이 기록되었습니다!');
+  }
 }
 
 // ===== 별점 입력 =====
@@ -356,6 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
 
 // ===== 데이터 내보내기 =====
 function exportData() {
