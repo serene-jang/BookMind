@@ -83,6 +83,34 @@ html, body {
   font-size: 14px;
 }
 
+.source-uploader {
+  background: rgba(124, 92, 222, 0.06);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.source-warning {
+  margin: 4px 0 8px 0;
+  font-size: 12px;
+  color: #b45309;
+}
+
+.quiz-evidence {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(124, 92, 222, 0.06);
+  border-left: 4px solid var(--brand);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.quiz-evidence .warning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 /* ===== 탭 콘텐츠 ===== */
 .tab-content {
   display: none;
@@ -977,9 +1005,27 @@ html, body {
   transition: border-color 200ms ease;
 }
 
+.review-input-form select {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: #fafbfc;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
 .review-input-form textarea:focus {
   outline: none;
   border-color: var(--brand);
+}
+
+.review-input-form select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(124, 92, 222, 0.1);
 }
 
 /* STEP 5: 독후감 비교 모달 */
@@ -1049,7 +1095,91 @@ html, body {
   margin-bottom: 12px;
 }
 
+.practice-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: #fafbfc;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
 .practice-form textarea:focus {
   outline: none;
   border-color: var(--brand);
+}
+
+.practice-form select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(124, 92, 222, 0.1);
+}
+
+.practice-progress-wrap {
+  margin-bottom: 12px;
+}
+
+#practice-progress-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.practice-progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e5e0f0;
+  overflow: hidden;
+}
+
+.practice-progress-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand) 0%, #9b8bd6 100%);
+  transition: width 180ms ease;
+}
+
+.practice-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.practice-typo-box {
+  margin-bottom: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.practice-coach-question {
+  margin-bottom: 12px;
+  background: rgba(124, 92, 222, 0.08);
+  border-left: 4px solid var(--brand);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.typo-ok {
+  color: var(--text);
+}
+
+.typo-wrong {
+  color: #dc2626;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.typo-miss {
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.22);
+  border-radius: 3px;
+  padding: 0 2px;
 }

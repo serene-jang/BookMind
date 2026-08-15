@@ -54,6 +54,13 @@
               </button>
             </div>
           </div>
+
+          <div class="home-section">
+            <h2 class="section-title">🤖 AI 독서 코치</h2>
+            <div id="home-coach">
+              <p class="muted">코칭 데이터를 분석하는 중입니다.</p>
+            </div>
+          </div>
         </section>
 
         <!-- 내 책 탭 -->
@@ -111,6 +118,15 @@
             <div class="form-group">
               <label>태그 (쉼표로 구분)</label>
               <input type="text" id="book-tags" placeholder="예: 추천, 강의, 필수 읽을 책">
+            </div>
+            <div class="form-group" id="book-source-group" style="display: none;">
+              <label>책 원본 자료 (PDF/TXT)</label>
+              <div class="source-uploader">
+                <p id="book-source-status" class="muted" style="margin: 0 0 8px 0;">아직 업로드된 원본이 없습니다.</p>
+                <input type="file" id="book-source-file" accept=".pdf,.txt" onchange="handleBookSourceUpload(event)" style="display: none;">
+                <button class="btn" type="button" onclick="document.getElementById('book-source-file').click()">📄 원본 업로드</button>
+              </div>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: var(--muted);">저작권 자료는 사용자가 합법적으로 이용 가능한 파일만 업로드하세요.</p>
             </div>
             <div class="form-actions">
               <button class="btn btn-primary" onclick="saveBook()">저장</button>
@@ -206,6 +222,11 @@
           <div class="record-section">
             <h2 class="section-title">📝 독후감 작성</h2>
             <div class="review-input-form">
+              <label>책 선택</label>
+              <select id="review-book-select">
+                <option value="">책을 선택하세요</option>
+              </select>
+              <p class="source-warning">먼저 내 생각으로 작성한 뒤, 원본 자료와 비교해 확인해요.</p>
               <label>당신의 독후감을 자유롭게 작성해주세요</label>
               <textarea id="review-input" placeholder="책을 읽고 느낀 점, 배운 내용, 인상 깊은 부분 등을 자유롭게 작성해보세요. 최소 50자 이상 입력해주세요."></textarea>
               
@@ -219,17 +240,35 @@
           <div class="record-section">
             <h2 class="section-title">✍️ 필사 연습</h2>
             <div class="practice-form">
+              <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px;">책 선택</label>
+                <select id="practice-book-select">
+                  <option value="">책을 선택하세요</option>
+                </select>
+              </div>
+
               <div style="margin-bottom: 16px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; color: var(--text-secondary);">📖 제시된 문장</label>
                 <div id="practice-quote" style="background: var(--bg); padding: 12px; border-radius: 8px; border-left: 4px solid var(--brand); min-height: 40px; color: var(--text);">
                   <p class="muted">책을 선택한 후 '새 문장 가져오기' 버튼을 눌러주세요.</p>
                 </div>
               </div>
+
+              <div class="practice-progress-wrap">
+                <div id="practice-progress-label">진행률: 0%</div>
+                <div class="practice-progress-bar">
+                  <div class="practice-progress-fill" id="practice-progress-fill"></div>
+                </div>
+                <div class="practice-meta" id="practice-char-meta">입력 글자 수: 0자</div>
+              </div>
               
               <div style="margin-bottom: 12px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px;">당신의 필사</label>
                 <textarea id="practice-input" placeholder="제시된 문장을 정확하게 필사해보세요."></textarea>
               </div>
+
+              <div id="practice-typo-box" class="practice-typo-box" style="display: none;"></div>
+              <div id="practice-coach-question" class="practice-coach-question" style="display: none;"></div>
               
               <div style="display: flex; gap: 8px;">
                 <button class="btn btn-primary" onclick="generatePracticeQuote()" style="flex: 1;">
@@ -247,6 +286,7 @@
             <h2 class="section-title">📄 콘텐츠로 퀴즈 생성</h2>
             <div class="content-input-form">
               <label>텍스트 입력 (또는 복사&붙여넣기)</label>
+              <p class="source-warning">원본 파일 없이 직접 입력한 텍스트는 실제 책 내용과 다를 수 있습니다.</p>
               <textarea id="content-input" placeholder="이 곳에 책 내용, 기사, 또는 학습 자료를 붙여넣고 퀴즈를 생성해보세요. 최소 30자 이상 입력해주세요."></textarea>
               
               <button class="btn btn-primary" onclick="generateQuizFromContent()" style="width: 100%; margin-top: 12px;">
@@ -372,6 +412,7 @@
     <div id="feedback-modal" class="feedback-modal" onclick="if(event.target === this) closeFeedbackModal()">
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
