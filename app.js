@@ -1,6 +1,6 @@
 /**
- * BookMind - STEP 2 메인 앱 로직
- * 실제 복습 일정 + 기억률 계산 + 책/기록 수정/삭제
+ * BookMind - STEP 3 메인 앱 로직
+ * AI 퀴즈 + 서술형 개선 + PDF 지원
  */
 
 // ===== 저장소 유틸 =====
@@ -51,6 +51,125 @@ function getNextReviewDate(startDate, reviewScheduleDay) {
   return nextDate.toISOString().split('T')[0];
 }
 
+// ===== STEP 3: AI 퀴즈 생성 =====
+function generateQuiz(bookIdx) {
+  const notes = storage.get('notes') || [];
+  const books = storage.get('books') || [];
+  const bookNotes = notes.filter(n => n.bookIdx === bookIdx);
+  
+  if (bookNotes.length === 0) {
+    alert('이 책의 기록이 없어서 퀴즈를 만들 수 없습니다.');
+    return null;
+  }
+
+  // 핵심 단어 추출 (간단한 명사 추출)
+  const keywords = new Set();
+  bookNotes.forEach(note => {
+    const text = (note.content + ' ' + note.impressive).split(/[\s,。.!?]+/);
+    text.forEach(word => {
+      if (word.length > 2 && !['이것', '그것', '저것'].includes(word)) {
+        keywords.add(word);
+      }
+    });
+  });
+
+  const keywordArray = Array.from(keywords).slice(0, 10);
+  if (keywordArray.length < 2) {
+    alert('기록 내용이 너무 짧아서 퀴즈를 만들 수 없습니다.');
+    return null;
+  }
+
+  // 정답 선택
+  const correctAnswer = keywordArray[Math.floor(Math.random() * keywordArray.length)];
+  
+  // 오답 생성 (다른 키워드들)
+  const wrongAnswers = keywordArray
+    .filter(k => k !== correctAnswer)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+
+  // 선택지 섞기
+  const options = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
+  const correctIdx = options.indexOf(correctAnswer);
+
+  const book = books[bookIdx];
+  const question = `'${book.title}'에서 배운 내용 중 다음 중 관련된 것은?`;
+
+  return {
+    bookIdx,
+    question,
+    options,
+    correctIdx,
+    userAnswer: -1,
+    score: 0,
+    date: new Date().toISOString()
+  };
+}
+
+function saveQuizAnswer(quizIdx, selectedIdx) {
+  const quizzes = storage.get('quizzes') || [];
+  const quiz = quizzes[quizIdx];
+  
+  quiz.userAnswer = selectedIdx;
+  quiz.score = selectedIdx === quiz.correctIdx ? 10 : 0;
+  
+  storage.set('quizzes', quizzes);
+  return quiz.score;
+}
+
+// ===== STEP 3: 피드백 생성 =====
+function generateFeedback(noteIdx) {
+  const notes = storage.get('notes') || [];
+  const note = notes[noteIdx];
+  const text = note.content + ' ' + note.impressive + ' ' + note.thoughts;
+  
+  const issues = [];
+  const suggestions = [];
+
+  // 1. 문장 길이 분석
+  const sentences = text.split(/[.!?。]/);
+  const avgLength = text.length / sentences.length;
+  if (avgLength > 100) {
+    issues.push({ type: 'length', message: '문장이 너무 깁니다' });
+    suggestions.push('문장을 더 짧게 나누어 쓰면 가독성이 좋아집니다.');
+  } else if (avgLength < 20) {
+    issues.push({ type: 'length', message: '내용이 너무 짧습니다' });
+    suggestions.push('좀 더 자세히 설명하면 더 좋은 기록이 됩니다.');
+  }
+
+  // 2. 반복 단어 확인
+  const words = text.toLowerCase().split(/[\s,。.!?]+/).filter(w => w.length > 2);
+  const wordCount = {};
+  words.forEach(w => {
+    wordCount[w] = (wordCount[w] || 0) + 1;
+  });
+
+  const repeatedWords = Object.entries(wordCount)
+    .filter(([w, count]) => count > 3)
+    .map(([w]) => w);
+
+  if (repeatedWords.length > 0) {
+    issues.push({ type: 'repetition', message: `'${repeatedWords[0]}' 등이 반복됩니다` });
+    suggestions.push('같은 단어를 반복하지 않고 다른 표현을 사용해보세요.');
+  }
+
+  // 3. 내용 풍부도
+  const contentWords = words.length;
+  if (contentWords < 20) {
+    issues.push({ type: 'richness', message: '내용이 다소 부족합니다' });
+    suggestions.push('더 많은 구체적인 예시나 생각을 덧붙여보세요.');
+  }
+
+  // 4. 긍정 피드백
+  if (issues.length === 0) {
+    suggestions.push('✨ 훌륭한 기록입니다! 이대로 계속 진행하세요.');
+  } else {
+    suggestions.push('💪 좋은 노력입니다. 위의 조언을 참고해서 더 나은 기록을 만들어보세요.');
+  }
+
+  return { issues, suggestions };
+}
+
 // ===== 초기 데이터 =====
 function initData() {
   if (!storage.get('books')) {
@@ -61,6 +180,9 @@ function initData() {
   }
   if (!storage.get('reviews')) {
     storage.set('reviews', []);
+  }
+  if (!storage.get('quizzes')) {
+    storage.set('quizzes', []);
   }
 }
 
@@ -105,6 +227,9 @@ function renderTab(tabName) {
       break;
     case 'record':
       renderRecord();
+      break;
+    case 'quiz':
+      renderQuiz();
       break;
     case 'my':
       renderMy();
@@ -319,15 +444,106 @@ function renderRecord() {
   notesListEl.innerHTML = notesHTML;
 }
 
+// ===== STEP 3: 퀴즈 탭 렌더링 =====
+function renderQuiz() {
+  const books = storage.get('books') || [];
+  const quizzes = storage.get('quizzes') || [];
+  const quizSectionEl = document.getElementById('quiz-section');
+
+  if (books.length === 0) {
+    quizSectionEl.innerHTML = '<p class="muted">먼저 책을 추가하고 기록을 작성해주세요.</p>';
+    return;
+  }
+
+  // 책별 퀴즈 생성 버튼
+  const bookSelectHTML = books.map((book, idx) => `
+    <div style="margin-bottom: 12px;">
+      <button class="btn btn-primary" onclick="startQuiz(${idx})" style="width: 100%;">
+        🧠 ${book.title} - 퀴즈 시작
+      </button>
+    </div>
+  `).join('');
+
+  // 완료한 퀴즈 현황
+  const completedQuizzes = quizzes.filter(q => q.userAnswer !== -1);
+  let currentQuizHTML = '<p class="muted">풀이 중인 퀴즈가 없습니다.</p>';
+
+  // 현재 진행 중인 퀴즈
+  const activeQuizzes = quizzes.filter(q => q.userAnswer === -1);
+  if (activeQuizzes.length > 0) {
+    const quiz = activeQuizzes[0];
+    const quizIdx = quizzes.indexOf(quiz);
+    currentQuizHTML = `
+      <div class="quiz-card">
+        <h3>${quiz.question}</h3>
+        <div class="quiz-options">
+          ${quiz.options.map((opt, i) => `
+            <button class="quiz-option" onclick="answerQuiz(${quizIdx}, ${i})">
+              ${String.fromCharCode(65 + i)}. ${opt}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  quizSectionEl.innerHTML = `
+    <div class="quiz-container">
+      <h2 class="section-title">📚 풀이 중인 퀴즈</h2>
+      ${currentQuizHTML}
+
+      <h2 class="section-title" style="margin-top: 24px;">새로운 퀴즈 시작</h2>
+      ${bookSelectHTML}
+
+      <h2 class="section-title" style="margin-top: 24px;">✅ 완료한 퀴즈</h2>
+      <div style="background: #f8f9fb; padding: 12px; border-radius: 10px;">
+        <p style="margin: 0; color: #2d2d3d; font-weight: 600;">
+          총 ${completedQuizzes.length}개 퀴즈 풀이 완료
+        </p>
+        <p style="margin: 8px 0 0; color: #6b7280; font-size: 14px;">
+          정답률: ${completedQuizzes.length > 0 
+            ? Math.round(completedQuizzes.filter(q => q.score === 10).length / completedQuizzes.length * 100)
+            : 0}%
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+function startQuiz(bookIdx) {
+  const quiz = generateQuiz(bookIdx);
+  if (quiz) {
+    const quizzes = storage.get('quizzes') || [];
+    quizzes.push(quiz);
+    storage.set('quizzes', quizzes);
+    renderQuiz();
+  }
+}
+
+function answerQuiz(quizIdx, selectedIdx) {
+  const score = saveQuizAnswer(quizIdx, selectedIdx);
+  const quizzes = storage.get('quizzes') || [];
+  const quiz = quizzes[quizIdx];
+  
+  const resultText = score === 10 ? '🎉 정답입니다!' : '❌ 틀렸습니다. 다시 도전해보세요!';
+  const correctText = `정답: ${String.fromCharCode(65 + quiz.correctIdx)}`;
+  
+  alert(`${resultText}\n${correctText}`);
+  renderQuiz();
+  renderMy();
+}
+
 // ===== 마이 탭 렌더링 =====
 function renderMy() {
   const books = storage.get('books') || [];
   const notes = storage.get('notes') || [];
   const reviews = storage.get('reviews') || [];
+  const quizzes = storage.get('quizzes') || [];
 
   document.getElementById('stat-books').textContent = books.length;
   document.getElementById('stat-notes').textContent = notes.length;
   document.getElementById('stat-reviews').textContent = reviews.length || 0;
+  document.getElementById('stat-quizzes').textContent = quizzes.filter(q => q.userAnswer !== -1).length;
 }
 
 // ===== 책 추가 폼 =====

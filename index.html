@@ -164,6 +164,16 @@
           </div>
         </section>
 
+        <!-- 퀴즈 탭 (STEP 3) -->
+        <section id="tab-quiz" class="tab-content">
+          <div class="tab-header">
+            <h1>🧠 AI 퀴즈</h1>
+          </div>
+          <div id="quiz-section" class="record-section">
+            <p class="muted">로딩 중...</p>
+          </div>
+        </section>
+
         <!-- 마이 탭 -->
         <section id="tab-my" class="tab-content">
           <div class="tab-header">
@@ -185,6 +195,10 @@
                 <span class="stat-value" id="stat-reviews">0</span>
                 <span class="stat-label">완료한 복습</span>
               </div>
+              <div class="stat-card">
+                <span class="stat-value" id="stat-quizzes">0</span>
+                <span class="stat-label">풀이한 퀴즈</span>
+              </div>
             </div>
           </div>
 
@@ -193,7 +207,7 @@
             <div class="info-card">
               <p><strong>앱 이름:</strong> BookMind</p>
               <p><strong>슬로건:</strong> "읽고 끝내지 말고, 오래 기억하자!"</p>
-              <p><strong>버전:</strong> 0.1.0 (STEP 1)</p>
+              <p><strong>버전:</strong> 0.3.0 (STEP 3)</p>
             </div>
           </div>
 
@@ -215,15 +229,19 @@
         </button>
         <button class="nav-item" data-tab="books" onclick="switchTab('books')">
           <span class="nav-icon">📚</span>
-          <span class="nav-label">내 책</span>
+          <span class="nav-label">책</span>
         </button>
         <button class="nav-item" data-tab="memory" onclick="switchTab('memory')">
           <span class="nav-icon">🧠</span>
-          <span class="nav-label">기억</span>
+          <span class="nav-label">복습</span>
         </button>
         <button class="nav-item" data-tab="record" onclick="switchTab('record')">
           <span class="nav-icon">✍️</span>
           <span class="nav-label">기록</span>
+        </button>
+        <button class="nav-item" data-tab="quiz" onclick="switchTab('quiz')">
+          <span class="nav-icon">❓</span>
+          <span class="nav-label">퀴즈</span>
         </button>
         <button class="nav-item" data-tab="my" onclick="switchTab('my')">
           <span class="nav-icon">👤</span>
