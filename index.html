@@ -163,6 +163,46 @@
             </div>
           </div>
 
+          <!-- 독후감 작성 (STEP 5) -->
+          <div class="record-section">
+            <h2 class="section-title">📝 독후감 작성</h2>
+            <div class="review-input-form">
+              <label>당신의 독후감을 자유롭게 작성해주세요</label>
+              <textarea id="review-input" placeholder="책을 읽고 느낀 점, 배운 내용, 인상 깊은 부분 등을 자유롭게 작성해보세요. 최소 50자 이상 입력해주세요."></textarea>
+              
+              <button class="btn btn-primary" onclick="generateFeedbackReview()" style="width: 100%; margin-top: 12px;">
+                ✨ AI와 함께 다듬기
+              </button>
+            </div>
+          </div>
+
+          <!-- 필사 연습 (STEP 5) -->
+          <div class="record-section">
+            <h2 class="section-title">✍️ 필사 연습</h2>
+            <div class="practice-form">
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; color: var(--text-secondary);">📖 제시된 문장</label>
+                <div id="practice-quote" style="background: var(--bg); padding: 12px; border-radius: 8px; border-left: 4px solid var(--brand); min-height: 40px; color: var(--text);">
+                  <p class="muted">책을 선택한 후 '새 문장 가져오기' 버튼을 눌러주세요.</p>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px;">당신의 필사</label>
+                <textarea id="practice-input" placeholder="제시된 문장을 정확하게 필사해보세요."></textarea>
+              </div>
+              
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" onclick="generatePracticeQuote()" style="flex: 1;">
+                  📖 새 문장 가져오기
+                </button>
+                <button class="btn btn-primary" onclick="submitPractice()" style="flex: 1;">
+                  ✅ 제출
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- 콘텐츠 기반 퀴즈 (STEP 4) -->
           <div class="record-section">
             <h2 class="section-title">📄 콘텐츠로 퀴즈 생성</h2>
@@ -215,12 +255,18 @@
             </div>
           </div>
 
+          <!-- STEP 5: 성과 분석 -->
+          <div class="my-section">
+            <div id="weekly-chart" style="background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 16px;"></div>
+            <div id="monthly-chart" style="background: var(--card); padding: 16px; border-radius: 12px;"></div>
+          </div>
+
           <div class="my-section">
             <h2 class="section-title">내 정보</h2>
             <div class="info-card">
               <p><strong>앱 이름:</strong> BookMind</p>
               <p><strong>슬로건:</strong> "읽고 끝내지 말고, 오래 기억하자!"</p>
-              <p><strong>버전:</strong> 0.4.0 (STEP 4)</p>
+              <p><strong>버전:</strong> 0.5.0 (STEP 5)</p>
             </div>
           </div>
 

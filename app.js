@@ -653,6 +653,145 @@ function renderMy() {
   document.getElementById('stat-notes').textContent = notes.length;
   document.getElementById('stat-reviews').textContent = reviews.length || 0;
   document.getElementById('stat-quizzes').textContent = quizzes.filter(q => q.userAnswer !== -1).length;
+
+  // ===== STEP 5: 통계 심화 =====
+  // 주별 성과
+  const weeklyStats = calculateWeeklyStats();
+  renderWeeklyChart(weeklyStats);
+  
+  // 월별 성과
+  const monthlyStats = calculateMonthlyStats();
+  renderMonthlyChart(monthlyStats);
+}
+
+// ===== STEP 5: 주별 성과 계산 =====
+function calculateWeeklyStats() {
+  const quizzes = storage.get('quizzes') || [];
+  const stats = {};
+  
+  // 최근 4주 데이터
+  for (let i = 0; i < 4; i++) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (3 - i) * 7);
+    const weekKey = `W${i + 1}`;
+    stats[weekKey] = { correct: 0, total: 0, rate: 0 };
+  }
+  
+  quizzes.forEach(quiz => {
+    if (quiz.date && quiz.userAnswer !== -1) {
+      const quizDate = new Date(quiz.date);
+      const today = new Date();
+      const daysAgo = Math.floor((today - quizDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysAgo < 28) {
+        const weekIdx = Math.floor(daysAgo / 7);
+        if (weekIdx < 4) {
+          const weekKey = `W${4 - weekIdx}`;
+          if (stats[weekKey]) {
+            stats[weekKey].total++;
+            if (quiz.userAnswer === quiz.correctIdx) {
+              stats[weekKey].correct++;
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  // 정답률 계산
+  Object.keys(stats).forEach(key => {
+    stats[key].rate = stats[key].total > 0 
+      ? Math.round((stats[key].correct / stats[key].total) * 100)
+      : 0;
+  });
+  
+  return stats;
+}
+
+// ===== STEP 5: 월별 성과 계산 =====
+function calculateMonthlyStats() {
+  const quizzes = storage.get('quizzes') || [];
+  const stats = {};
+  
+  // 최근 6개월
+  for (let i = 0; i < 6; i++) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - (5 - i));
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    stats[monthKey] = { correct: 0, total: 0, rate: 0 };
+  }
+  
+  quizzes.forEach(quiz => {
+    if (quiz.date && quiz.userAnswer !== -1) {
+      const quizDate = new Date(quiz.date);
+      const monthKey = `${quizDate.getFullYear()}-${String(quizDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (stats[monthKey]) {
+        stats[monthKey].total++;
+        if (quiz.userAnswer === quiz.correctIdx) {
+          stats[monthKey].correct++;
+        }
+      }
+    }
+  });
+  
+  // 정답률 계산
+  Object.keys(stats).forEach(key => {
+    stats[key].rate = stats[key].total > 0 
+      ? Math.round((stats[key].correct / stats[key].total) * 100)
+      : 0;
+  });
+  
+  return stats;
+}
+
+// ===== STEP 5: 주별 차트 렌더링 =====
+function renderWeeklyChart(stats) {
+  const chartContainer = document.getElementById('weekly-chart');
+  if (!chartContainer) return;
+  
+  let chartHTML = '<h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">📈 최근 4주 성과</h3>';
+  chartHTML += '<div style="display: flex; gap: 8px; align-items: flex-end; height: 150px;">';
+  
+  Object.keys(stats).forEach(week => {
+    const data = stats[week];
+    const height = Math.max(data.rate * 1.5, 5); // 최소 높이 보장
+    chartHTML += `
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+        <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--brand);">${data.rate}%</div>
+        <div style="width: 100%; height: ${height}px; background: linear-gradient(180deg, #7c5cde 0%, #6d4ed8 100%); border-radius: 4px 4px 0 0; transition: all 200ms;"></div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${week}</div>
+      </div>
+    `;
+  });
+  
+  chartHTML += '</div>';
+  chartContainer.innerHTML = chartHTML;
+}
+
+// ===== STEP 5: 월별 차트 렌더링 =====
+function renderMonthlyChart(stats) {
+  const chartContainer = document.getElementById('monthly-chart');
+  if (!chartContainer) return;
+  
+  let chartHTML = '<h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">📊 최근 6개월 성과</h3>';
+  chartHTML += '<div style="display: flex; gap: 6px; align-items: flex-end; height: 120px;">';
+  
+  Object.keys(stats).forEach(month => {
+    const data = stats[month];
+    const monthLabel = month.split('-')[1];
+    const height = Math.max(data.rate * 1.2, 5);
+    chartHTML += `
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0;">
+        <div style="font-size: 11px; font-weight: 600; margin-bottom: 2px; color: var(--brand);">${data.rate}%</div>
+        <div style="width: 100%; height: ${height}px; background: linear-gradient(180deg, #7c5cde 0%, #9b8bd1 100%); border-radius: 3px 3px 0 0;"></div>
+        <div style="font-size: 9px; color: var(--text-secondary); margin-top: 3px;">${monthLabel}월</div>
+      </div>
+    `;
+  });
+  
+  chartHTML += '</div>';
+  chartContainer.innerHTML = chartHTML;
 }
 
 // ===== 책 추가 폼 =====
@@ -955,7 +1094,266 @@ function closeFeedbackModal() {
   modalEl.classList.remove('active');
 }
 
-// ===== 앱 초기화 =====
+// ===== STEP 5: AI 독후감 도우미 =====
+function generateFeedbackReview() {
+  const reviewText = document.getElementById('review-input').value.trim();
+  
+  if (reviewText.length < 50) {
+    alert('최소 50자 이상 입력해주세요.');
+    return;
+  }
+
+  // 독후감 분석
+  const sentences = reviewText.split(/[.!?。!？]+/).filter(s => s.trim());
+  
+  // 개선 포인트 분석
+  const improvements = [];
+  const sentenceCount = sentences.length;
+  
+  // 체크 1: 문장 다양성
+  if (sentenceCount < 3) {
+    improvements.push({
+      type: 'structure',
+      message: '더 많은 문장으로 다양한 관점을 표현하면 좋습니다.'
+    });
+  }
+  
+  // 체크 2: 구체성
+  if (reviewText.length < 100) {
+    improvements.push({
+      type: 'depth',
+      message: '구체적인 예시나 이유를 추가하면 더 설득력 있습니다.'
+    });
+  }
+  
+  // 체크 3: 표현 다양성
+  const commonWords = ['생각', '느껴', '좋아', '있다', '이다'];
+  const hasCommon = commonWords.some(word => reviewText.includes(word));
+  if (hasCommon) {
+    improvements.push({
+      type: 'expression',
+      message: '더 구체적인 동사나 표현으로 다듬으면 좋습니다.'
+    });
+  }
+  
+  // 개선된 독후감 생성
+  const improvedReview = enhanceReviewText(reviewText);
+  
+  // 모달에 표시
+  const reviewModal = `
+    <div class="modal-header">
+      <h3>📝 AI와 함께 한 독후감 개선</h3>
+      <button onclick="closeReviewModal()" class="close-btn">✕</button>
+    </div>
+    <div class="modal-content">
+      <div class="review-comparison">
+        <div class="review-comparison-item">
+          <h4>원본</h4>
+          <p>${reviewText}</p>
+        </div>
+        <div class="review-comparison-item" style="border-left-color: #7c5cde;">
+          <h4>AI 개선본</h4>
+          <p>${improvedReview}</p>
+        </div>
+      </div>
+      
+      ${improvements.length > 0 ? `
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line);">
+          <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+            💡 개선 제안
+          </h4>
+          ${improvements.map((imp, idx) => `
+            <div class="suggestion-item" style="margin-bottom: 8px;">
+              <strong>${imp.message}</strong>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      
+      <div style="margin-top: 16px; display: flex; gap: 8px;">
+        <button class="btn btn-primary" onclick="saveImprovedReview('${improvedReview.replace(/'/g, "\\'")}')" style="flex: 1;">
+          💾 개선본 저장
+        </button>
+        <button class="btn" onclick="closeReviewModal()" style="flex: 1;">
+          닫기
+        </button>
+      </div>
+    </div>
+  `;
+  
+  const modalEl = document.getElementById('feedback-modal');
+  modalEl.innerHTML = reviewModal;
+  modalEl.classList.add('active');
+}
+
+function enhanceReviewText(text) {
+  // 기본 텍스트 개선 로직
+  let enhanced = text;
+  
+  // 문장 구조 개선
+  const sentences = text.split(/[.!?。!？]+/).filter(s => s.trim());
+  
+  if (sentences.length > 0) {
+    enhanced = sentences
+      .map((sentence, idx) => {
+        let improved = sentence.trim();
+        
+        // 표현 개선 (간단한 예시)
+        improved = improved
+          .replace(/이 책은 /g, '이 저서는 ')
+          .replace(/정말 좋았다/g, '매우 인상적이었다')
+          .replace(/느껴졌다/g, '감지되었다')
+          .replace(/생각해본다/g, '성찰해본다')
+          .replace(/좋은 내용/g, '흥미로운 내용')
+          .replace(/배웠다/g, '획득했다')
+          .replace(/\.\.\./g, '—');
+        
+        // 첫 글자 대문자
+        if (improved.length > 0) {
+          improved = improved.charAt(0).toUpperCase() + improved.slice(1);
+        }
+        
+        return improved;
+      })
+      .join('. ') + '.';
+  }
+  
+  return enhanced;
+}
+
+function saveImprovedReview(improvedText) {
+  const reviews = storage.get('reviews') || [];
+  
+  const review = {
+    text: improvedText,
+    date: new Date().toISOString(),
+    original: document.getElementById('review-input').value,
+    improved: true
+  };
+  
+  reviews.push(review);
+  storage.set('reviews', reviews);
+  
+  // 입력 필드 초기화
+  document.getElementById('review-input').value = '';
+  
+  alert('✨ 개선된 독후감이 저장되었습니다!');
+  closeReviewModal();
+}
+
+function closeReviewModal() {
+  const modalEl = document.getElementById('feedback-modal');
+  modalEl.classList.remove('active');
+}
+
+// ===== STEP 5: AI 필사 지원 =====
+function generatePracticeQuote() {
+  const notes = storage.get('notes') || [];
+  
+  if (notes.length === 0) {
+    alert('기록이 없어서 필사할 문장을 찾을 수 없습니다. 먼저 책을 읽고 기록을 추가해주세요.');
+    return;
+  }
+  
+  // 모든 기록에서 문장 수집
+  const sentences = [];
+  notes.forEach(note => {
+    const text = (note.content || '') + ' ' + (note.impressive || '');
+    const parts = text.split(/[.!?。!？]+/).filter(s => s.trim());
+    parts.forEach(part => {
+      if (part.trim().length > 10) {
+        sentences.push(part.trim());
+      }
+    });
+  });
+  
+  if (sentences.length === 0) {
+    alert('기록에서 필사할 문장을 찾을 수 없습니다.');
+    return;
+  }
+  
+  // 임의의 문장 선택
+  const randomIdx = Math.floor(Math.random() * sentences.length);
+  const selectedQuote = sentences[randomIdx];
+  
+  // 글로벌 변수에 저장 (검증용)
+  window.currentPracticeQuote = selectedQuote;
+  
+  // UI 업데이트
+  document.getElementById('practice-quote').innerHTML = `<p style="margin: 0; line-height: 1.6;">"${selectedQuote}"</p>`;
+  document.getElementById('practice-input').value = '';
+  document.getElementById('practice-input').focus();
+}
+
+function submitPractice() {
+  const userText = document.getElementById('practice-input').value.trim();
+  const originalText = window.currentPracticeQuote;
+  
+  if (!originalText) {
+    alert('먼저 문장을 가져와주세요.');
+    return;
+  }
+  
+  if (userText.length === 0) {
+    alert('필사 내용을 입력해주세요.');
+    return;
+  }
+  
+  // 정확도 계산
+  const accuracy = calculateAccuracy(originalText, userText);
+  
+  // 결과 저장
+  const practices = storage.get('practices') || [];
+  practices.push({
+    originalText: originalText,
+    userText: userText,
+    accuracy: accuracy,
+    date: new Date().toISOString()
+  });
+  storage.set('practices', practices);
+  
+  // 피드백 표시
+  let feedback = '';
+  if (accuracy >= 90) {
+    feedback = '🌟 완벽합니다! 매우 정확하게 필사했어요!';
+  } else if (accuracy >= 80) {
+    feedback = '👏 훌륭합니다! 거의 완벽해요!';
+  } else if (accuracy >= 70) {
+    feedback = '✅ 잘했습니다! 조금 더 집중하면 더 좋을 거예요.';
+  } else if (accuracy >= 60) {
+    feedback = '🎯 괜찮습니다. 한번 더 시도해보세요!';
+  } else {
+    feedback = '💪 처음이니까 괜찮아요. 계속 연습하면 좋아질 거예요!';
+  }
+  
+  alert(`정확도: ${accuracy}%\n${feedback}\n\n다음 문장을 필사해보세요!`);
+  
+  // 입력 필드 초기화 및 다음 문장 로드
+  document.getElementById('practice-input').value = '';
+  generatePracticeQuote();
+}
+
+function calculateAccuracy(original, userText) {
+  // 정확도 계산: 유사 문자 비교
+  const orig = original.toLowerCase().replace(/\s/g, '');
+  const user = userText.toLowerCase().replace(/\s/g, '');
+  
+  let matches = 0;
+  const minLen = Math.min(orig.length, user.length);
+  
+  for (let i = 0; i < minLen; i++) {
+    if (orig[i] === user[i]) {
+      matches++;
+    }
+  }
+  
+  // 문자 수 차이 페널티
+  const lengthPenalty = Math.abs(orig.length - user.length) * 0.5;
+  const accuracy = Math.round((matches / Math.max(orig.length, user.length)) * 100);
+  
+  return Math.max(0, Math.min(100, accuracy));
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   initData();
   switchTab('home');

@@ -885,3 +885,109 @@ html, body {
   outline: none;
   border-color: var(--brand);
 }
+
+/* STEP 5: 독후감 입력 폼 */
+.review-input-form {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.review-input-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.review-input-form textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  resize: vertical;
+  transition: border-color 200ms ease;
+}
+
+.review-input-form textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+/* STEP 5: 독후감 비교 모달 */
+.review-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.review-comparison-item {
+  background: var(--bg);
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid var(--brand);
+}
+
+.review-comparison-item h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.review-comparison-item p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .review-comparison {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* STEP 5: 필사 연습 폼 */
+.practice-form {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.practice-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.practice-form textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  resize: vertical;
+  transition: border-color 200ms ease;
+  margin-bottom: 12px;
+}
+
+.practice-form textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+}
