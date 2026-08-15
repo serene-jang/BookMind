@@ -87,9 +87,48 @@
                 <option value="completed">완독</option>
               </select>
             </div>
+            <!-- STEP 6: 고급 필터링 필드 -->
+            <div class="form-group">
+              <label>카테고리</label>
+              <select id="book-category">
+                <option value="">선택 안함</option>
+                <option value="소설">소설</option>
+                <option value="역사">역사</option>
+                <option value="과학">과학</option>
+                <option value="자기개발">자기개발</option>
+                <option value="기술">기술</option>
+                <option value="예술">예술</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>난이도 (1-5)</label>
+              <input type="range" id="book-difficulty" min="1" max="5" value="3" style="width: 100%;" onchange="document.getElementById('difficulty-display').textContent = this.value" oninput="document.getElementById('difficulty-display').textContent = this.value">
+              <div style="text-align: center; font-size: 12px; color: var(--text-secondary);">
+                <span id="difficulty-display">3</span> / 5
+              </div>
+            </div>
+            <div class="form-group">
+              <label>태그 (쉼표로 구분)</label>
+              <input type="text" id="book-tags" placeholder="예: 추천, 강의, 필수 읽을 책">
+            </div>
             <div class="form-actions">
               <button class="btn btn-primary" onclick="saveBook()">저장</button>
               <button class="btn" onclick="closeAddBookForm()">취소</button>
+            </div>
+          </div>
+
+          <!-- STEP 6: 필터 UI -->
+          <div style="margin-bottom: 16px; padding: 12px; background: var(--card); border-radius: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">카테고리:</span>
+              <button class="filter-btn active" onclick="filterBooks('')">전체</button>
+              <button class="filter-btn" onclick="filterBooks('소설')">소설</button>
+              <button class="filter-btn" onclick="filterBooks('역사')">역사</button>
+              <button class="filter-btn" onclick="filterBooks('과학')">과학</button>
+              <button class="filter-btn" onclick="filterBooks('자기개발')">자기개발</button>
+              <button class="filter-btn" onclick="filterBooks('기술')">기술</button>
+              <button class="filter-btn" onclick="filterBooks('기타')">기타</button>
             </div>
           </div>
 
@@ -266,14 +305,34 @@
             <div class="info-card">
               <p><strong>앱 이름:</strong> BookMind</p>
               <p><strong>슬로건:</strong> "읽고 끝내지 말고, 오래 기억하자!"</p>
-              <p><strong>버전:</strong> 0.5.0 (STEP 5)</p>
+              <p><strong>버전:</strong> 0.6.0 (STEP 6)</p>
+            </div>
+          </div>
+
+          <!-- STEP 6: 테마 설정 -->
+          <div class="my-section">
+            <h2 class="section-title">테마</h2>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn theme-btn" onclick="applyTheme('light')" id="theme-light" style="flex: 1; border: 2px solid var(--brand);">
+                ☀️ 라이트
+              </button>
+              <button class="btn theme-btn" onclick="applyTheme('dark')" id="theme-dark" style="flex: 1;">
+                🌙 다크
+              </button>
             </div>
           </div>
 
           <div class="my-section">
             <h2 class="section-title">데이터 관리</h2>
+            <div style="margin-bottom: 12px; padding: 12px; background: var(--card); border-radius: 8px; border-left: 4px solid var(--brand);">
+              <div style="font-size: 12px; color: var(--text-secondary);">
+                <span id="last-backup">최근 백업: 없음</span>
+              </div>
+            </div>
             <div class="data-actions">
-              <button class="btn" onclick="exportData()">📥 데이터 내보내기</button>
+              <button class="btn btn-primary" onclick="exportData()" style="width: 100%; margin-bottom: 8px;">📥 데이터 내보내기</button>
+              <button class="btn" onclick="document.getElementById('import-file').click()" style="width: 100%; margin-bottom: 8px;">📤 데이터 불러오기</button>
+              <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
               <button class="btn btn-danger" onclick="clearAllData()">🗑️ 모든 데이터 삭제</button>
             </div>
           </div>

@@ -414,32 +414,66 @@ function renderHome() {
 
 
 // ===== 내 책 탭 렌더링 =====
+// ===== STEP 6: 필터 상태 글로벌 변수 =====
+let currentBookFilter = '';
+
+function filterBooks(category) {
+  currentBookFilter = category;
+  
+  // 필터 버튼 활성화 상태 업데이트
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.textContent.includes(category === '' ? '전체' : category)) {
+      btn.classList.add('active');
+    }
+  });
+  
+  renderBooks();
+}
+
 function renderBooks() {
   const books = storage.get('books') || [];
   const bookListEl = document.getElementById('book-list');
 
-  if (books.length === 0) {
-    bookListEl.innerHTML = '<p class="muted">등록된 책이 없습니다.</p>';
-    updateBookSelectList([]);
+  // 필터 적용
+  let filteredBooks = books;
+  if (currentBookFilter) {
+    filteredBooks = books.filter(book => book.category === currentBookFilter);
+  }
+
+  if (filteredBooks.length === 0) {
+    bookListEl.innerHTML = `<p class="muted">${currentBookFilter ? '해당 카테고리의' : '등록된'} 책이 없습니다.</p>`;
+    updateBookSelectList(books);  // 전체 책으로 유지
     return;
   }
 
-  const bookHTML = books.map((book, idx) => `
+  const bookHTML = filteredBooks.map((book, origIdx) => {
+    // 원래 인덱스 찾기
+    const idx = books.indexOf(book);
+    
+    return `
     <div class="book-card">
       <div class="book-info">
         <p class="book-title">${book.title}</p>
         <p class="book-author">${book.author}</p>
-        <div style="display: flex; gap: 6px; margin-top: 8px; font-size: 12px;">
+        <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; font-size: 12px;">
           <span class="book-status">${book.status === 'reading' ? '읽는 중' : '완독'}</span>
+          ${book.category ? `<span style="background: rgba(124, 92, 222, 0.1); color: var(--brand); padding: 2px 6px; border-radius: 4px;">${book.category}</span>` : ''}
+          ${book.difficulty ? `<span style="color: #f59e0b;">⭐ ${book.difficulty}/5</span>` : ''}
           <span style="color: #7c5cde; font-weight: 600;">기억률: ${calculateMemoryRate(idx)}%</span>
         </div>
+        ${book.tags && book.tags.length > 0 ? `
+        <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
+          ${book.tags.map(tag => `<span style="background: rgba(124, 92, 222, 0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--text-secondary);">#${tag}</span>`).join('')}
+        </div>
+        ` : ''}
       </div>
       <div class="book-actions">
         <button class="btn" onclick="editBook(${idx})" style="padding: 6px 8px; font-size: 12px;">수정</button>
         <button class="btn" onclick="deleteBook(${idx})" style="padding: 6px 8px; font-size: 12px;">삭제</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 
   bookListEl.innerHTML = bookHTML;
   updateBookSelectList(books);
@@ -634,11 +668,47 @@ function answerQuiz(quizIdx, selectedIdx) {
   const quizzes = storage.get('quizzes') || [];
   const quiz = quizzes[quizIdx];
   
-  const resultText = score === 10 ? '🎉 정답입니다!' : '❌ 틀렸습니다. 다시 도전해보세요!';
+  const isCorrect = score === 10;
+  const resultText = isCorrect ? '🎉 정답입니다!' : '❌ 틀렸습니다.';
   const correctText = `정답: ${String.fromCharCode(65 + quiz.correctIdx)}`;
+  const selectedText = `선택: ${String.fromCharCode(65 + selectedIdx)}`;
   
-  alert(`${resultText}\n${correctText}`);
-  renderQuiz();
+  // 결과 모달 표시
+  const quizResultModal = `
+    <div class="modal-header">
+      <h3>🎯 퀴즈 결과</h3>
+      <button onclick="closeReviewModal()" class="close-btn">✕</button>
+    </div>
+    <div class="modal-content">
+      <div style="margin-bottom: 16px; padding: 12px; background: ${isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 107, 107, 0.1)'}; border-radius: 8px; border-left: 4px solid ${isCorrect ? '#10b981' : '#ff6b6b'}; text-align: center;">
+        <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px; color: ${isCorrect ? '#10b981' : '#ff6b6b'};">${resultText}</div>
+        <div style="font-size: 14px; color: var(--text-secondary);">${correctText}</div>
+        ${!isCorrect ? `<div style="font-size: 14px; color: var(--text-secondary);">${selectedText}</div>` : ''}
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600;">📌 문제</h4>
+        <p style="margin: 0; padding: 8px; background: var(--bg); border-radius: 4px; color: var(--text);">${quiz.question}</p>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" onclick="shareQuizResult('${quiz.question.replace(/'/g, "\\'")}', ${quiz.correctIdx}, ${selectedIdx}, ${score})" style="flex: 1;">
+          📤 공유
+        </button>
+        <button class="btn" onclick="closeReviewModal(); renderQuiz();" style="flex: 1;">
+          ➡️ 다음
+        </button>
+        <button class="btn" onclick="closeReviewModal()" style="flex: 1;">
+          닫기
+        </button>
+      </div>
+    </div>
+  `;
+  
+  const modalEl = document.getElementById('feedback-modal');
+  modalEl.innerHTML = quizResultModal;
+  modalEl.classList.add('active');
+  
   renderMy();
 }
 
@@ -662,6 +732,9 @@ function renderMy() {
   // 월별 성과
   const monthlyStats = calculateMonthlyStats();
   renderMonthlyChart(monthlyStats);
+  
+  // ===== STEP 6: 백업 정보 표시 =====
+  updateBackupInfo();
 }
 
 // ===== STEP 5: 주별 성과 계산 =====
@@ -801,6 +874,10 @@ function openAddBookForm() {
   document.getElementById('book-author').value = '';
   document.getElementById('book-start-date').value = '';
   document.getElementById('book-status').value = 'reading';
+  document.getElementById('book-category').value = '';
+  document.getElementById('book-difficulty').value = '3';
+  document.getElementById('difficulty-display').textContent = '3';
+  document.getElementById('book-tags').value = '';
   document.getElementById('book-form-title').textContent = '책 추가';
   document.getElementById('book-add-form').style.display = 'block';
   document.getElementById('book-title').focus();
@@ -819,6 +896,10 @@ function editBook(idx) {
   document.getElementById('book-author').value = book.author;
   document.getElementById('book-start-date').value = book.startDate;
   document.getElementById('book-status').value = book.status;
+  document.getElementById('book-category').value = book.category || '';
+  document.getElementById('book-difficulty').value = book.difficulty || '3';
+  document.getElementById('difficulty-display').textContent = book.difficulty || '3';
+  document.getElementById('book-tags').value = (book.tags || []).join(', ');
   document.getElementById('book-form-title').textContent = '책 수정';
   document.getElementById('book-add-form').style.display = 'block';
   document.getElementById('book-title').focus();
@@ -829,6 +910,10 @@ function saveBook() {
   const author = document.getElementById('book-author').value.trim();
   const startDate = document.getElementById('book-start-date').value;
   const status = document.getElementById('book-status').value;
+  const category = document.getElementById('book-category').value;
+  const difficulty = parseInt(document.getElementById('book-difficulty').value);
+  const tagsStr = document.getElementById('book-tags').value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
   const editIdx = document.getElementById('edit-book-idx').value;
 
   if (!title || !author) {
@@ -844,6 +929,9 @@ function saveBook() {
     books[editIdx].author = author;
     books[editIdx].startDate = startDate;
     books[editIdx].status = status;
+    books[editIdx].category = category;
+    books[editIdx].difficulty = difficulty;
+    books[editIdx].tags = tags;
     alert('책이 수정되었습니다!');
   } else {
     // 추가
@@ -852,6 +940,9 @@ function saveBook() {
       author,
       startDate: startDate || new Date().toISOString().split('T')[0],
       status,
+      category,
+      difficulty,
+      tags,
       createdAt: new Date().toISOString()
     });
     alert('책이 저장되었습니다!');
@@ -993,6 +1084,9 @@ function reviewBook(bookIdx) {
 
 // ===== 별점 입력 =====
 document.addEventListener('DOMContentLoaded', () => {
+  // STEP 6: 다크모드 초기화
+  initTheme();
+  
   const ratingInput = document.getElementById('note-rating');
   if (ratingInput) {
     ratingInput.addEventListener('input', (e) => {
@@ -1006,10 +1100,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== 데이터 내보내기 =====
 function exportData() {
   const data = {
+    version: '0.6.0',
+    exportedAt: new Date().toISOString(),
     books: storage.get('books') || [],
     notes: storage.get('notes') || [],
     reviews: storage.get('reviews') || [],
-    exportedAt: new Date().toISOString()
+    quizzes: storage.get('quizzes') || [],
+    practices: storage.get('practices') || []
   };
 
   const json = JSON.stringify(data, null, 2);
@@ -1017,11 +1114,111 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `bookmind-data-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `bookmind-backup-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
 
-  alert('데이터가 내보내져졌습니다!');
+  // 백업 날짜 저장
+  const backupDate = new Date().toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  storage.set('lastBackupDate', backupDate);
+  updateBackupInfo();
+  
+  showShareNotification('백업 완료! 🎉');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      
+      // 데이터 검증
+      if (!importedData.books || !importedData.notes) {
+        alert('유효하지 않은 백업 파일입니다.');
+        return;
+      }
+      
+      // 충돌 해결 방식 확인
+      const overwrite = confirm('기존 데이터를 덮어쓸까요?\n\n「아니오」를 선택하면 데이터를 병합합니다.');
+      
+      if (overwrite) {
+        // 덮어쓰기
+        storage.set('books', importedData.books || []);
+        storage.set('notes', importedData.notes || []);
+        storage.set('reviews', importedData.reviews || []);
+        storage.set('quizzes', importedData.quizzes || []);
+        storage.set('practices', importedData.practices || []);
+      } else {
+        // 병합 - 배열 병합
+        const existingBooks = storage.get('books') || [];
+        const existingNotes = storage.get('notes') || [];
+        const existingReviews = storage.get('reviews') || [];
+        const existingQuizzes = storage.get('quizzes') || [];
+        const existingPractices = storage.get('practices') || [];
+        
+        // 중복 제거를 위한 간단한 로직 (title 기준)
+        const newBooks = importedData.books || [];
+        const mergedBooks = [...existingBooks];
+        
+        newBooks.forEach(newBook => {
+          if (!mergedBooks.find(b => b.title === newBook.title && b.author === newBook.author)) {
+            mergedBooks.push(newBook);
+          }
+        });
+        
+        storage.set('books', mergedBooks);
+        storage.set('notes', [...existingNotes, ...(importedData.notes || [])]);
+        storage.set('reviews', [...existingReviews, ...(importedData.reviews || [])]);
+        storage.set('quizzes', [...existingQuizzes, ...(importedData.quizzes || [])]);
+        storage.set('practices', [...existingPractices, ...(importedData.practices || [])]);
+      }
+      
+      // 백업 날짜 업데이트
+      const backupDate = new Date(importedData.exportedAt || Date.now()).toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      storage.set('lastBackupDate', backupDate);
+      updateBackupInfo();
+      
+      // UI 새로고침
+      renderHome();
+      renderBooks();
+      renderRecord();
+      renderMemory();
+      renderQuiz();
+      renderMy();
+      
+      showShareNotification('데이터 복원 완료! 🎉');
+    } catch (error) {
+      alert('파일을 읽는 중 오류가 발생했습니다.');
+      console.error(error);
+    }
+  };
+  reader.readAsText(file);
+  
+  // 파일 입력 초기화
+  event.target.value = '';
+}
+
+function updateBackupInfo() {
+  const lastBackup = storage.get('lastBackupDate');
+  const backupEl = document.getElementById('last-backup');
+  if (backupEl) {
+    backupEl.textContent = lastBackup ? `최근 백업: ${lastBackup}` : '최근 백업: 없음';
+  }
 }
 
 // ===== 모든 데이터 삭제 =====
@@ -1173,6 +1370,9 @@ function generateFeedbackReview() {
       <div style="margin-top: 16px; display: flex; gap: 8px;">
         <button class="btn btn-primary" onclick="saveImprovedReview('${improvedReview.replace(/'/g, "\\'")}')" style="flex: 1;">
           💾 개선본 저장
+        </button>
+        <button class="btn" onclick="shareReview('${improvedReview.replace(/'/g, "\\'")}')" style="flex: 1;">
+          📤 공유
         </button>
         <button class="btn" onclick="closeReviewModal()" style="flex: 1;">
           닫기
@@ -1326,11 +1526,51 @@ function submitPractice() {
     feedback = '💪 처음이니까 괜찮아요. 계속 연습하면 좋아질 거예요!';
   }
   
-  alert(`정확도: ${accuracy}%\n${feedback}\n\n다음 문장을 필사해보세요!`);
+  // 결과 모달에 표시
+  const practiceResultModal = `
+    <div class="modal-header">
+      <h3>✍️ 필사 연습 결과</h3>
+      <button onclick="closeReviewModal()" class="close-btn">✕</button>
+    </div>
+    <div class="modal-content">
+      <div class="review-comparison">
+        <div class="review-comparison-item">
+          <h4>📖 원문</h4>
+          <p>${originalText}</p>
+        </div>
+        <div class="review-comparison-item" style="border-left-color: #10b981;">
+          <h4>✍️ 당신의 필사</h4>
+          <p>${userText}</p>
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; padding: 12px; background: rgba(124, 92, 222, 0.1); border-radius: 8px; border-left: 4px solid var(--brand);">
+        <div style="text-align: center;">
+          <div style="font-size: 32px; font-weight: 700; color: var(--brand); margin-bottom: 4px;">${accuracy}%</div>
+          <div style="font-size: 14px; font-weight: 600;">${feedback}</div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; display: flex; gap: 8px;">
+        <button class="btn btn-primary" onclick="sharePracticeResult('${originalText.replace(/'/g, "\\'")}', '${userText.replace(/'/g, "\\'")}', ${accuracy})" style="flex: 1;">
+          📤 공유
+        </button>
+        <button class="btn" onclick="closeReviewModal(); generatePracticeQuote();" style="flex: 1;">
+          ➡️ 다음
+        </button>
+        <button class="btn" onclick="closeReviewModal()" style="flex: 1;">
+          닫기
+        </button>
+      </div>
+    </div>
+  `;
   
-  // 입력 필드 초기화 및 다음 문장 로드
+  const modalEl = document.getElementById('feedback-modal');
+  modalEl.innerHTML = practiceResultModal;
+  modalEl.classList.add('active');
+  
+  // 데이터 저장
   document.getElementById('practice-input').value = '';
-  generatePracticeQuote();
 }
 
 function calculateAccuracy(original, userText) {
@@ -1352,6 +1592,136 @@ function calculateAccuracy(original, userText) {
   const accuracy = Math.round((matches / Math.max(orig.length, user.length)) * 100);
   
   return Math.max(0, Math.min(100, accuracy));
+}
+
+// ===== STEP 6: 소셜 공유 기능 =====
+function shareReview(reviewText) {
+  const books = storage.get('books') || [];
+  const currentBook = books.length > 0 ? books[0].title : '한 권의 책';
+  
+  const shareText = `📚 독후감 공유
+  
+책: "${currentBook}"
+
+📝 ${reviewText.substring(0, 200)}...
+
+💾 BookMind로 공유됨
+https://github.com/serene-jang/BookMind`;
+
+  copyToClipboard(shareText);
+}
+
+// ===== STEP 6: 다크모드 설정 =====
+function applyTheme(theme) {
+  const htmlEl = document.documentElement;
+  
+  if (theme === 'dark') {
+    htmlEl.classList.add('dark-mode');
+    storage.set('theme', 'dark');
+    document.getElementById('theme-light').classList.remove('btn-primary');
+    document.getElementById('theme-dark').classList.add('btn-primary');
+    document.getElementById('theme-light').style.borderColor = 'var(--line)';
+    document.getElementById('theme-dark').style.borderColor = 'var(--brand)';
+    document.getElementById('theme-dark').style.borderWidth = '2px';
+  } else {
+    htmlEl.classList.remove('dark-mode');
+    storage.set('theme', 'light');
+    document.getElementById('theme-dark').classList.remove('btn-primary');
+    document.getElementById('theme-light').classList.add('btn-primary');
+    document.getElementById('theme-dark').style.borderColor = 'var(--line)';
+    document.getElementById('theme-light').style.borderColor = 'var(--brand)';
+    document.getElementById('theme-light').style.borderWidth = '2px';
+  }
+}
+
+function initTheme() {
+  const savedTheme = storage.get('theme') || 'light';
+  applyTheme(savedTheme);
+}
+
+// ===== STEP 6: 소셜 공유 기능 (계속) =====
+
+function sharePracticeResult(originalText, userText, accuracy) {
+  const shareText = `✍️ 필사 연습 결과
+  
+📖 원문: ${originalText.substring(0, 100)}...
+📝 필사: ${userText.substring(0, 100)}...
+⭐ 정확도: ${accuracy}%
+
+💾 BookMind로 공유됨
+https://github.com/serene-jang/BookMind`;
+
+  copyToClipboard(shareText);
+}
+
+function shareQuizResult(question, correctIdx, userAnswer, score) {
+  const result = userAnswer === correctIdx ? '✅ 정답!' : '❌ 오답';
+  
+  const shareText = `🎯 퀴즈 결과
+
+📌 문제: ${question.substring(0, 100)}...
+${result}
+📊 점수: ${score}점
+
+💾 BookMind로 공유됨
+https://github.com/serene-jang/BookMind`;
+
+  copyToClipboard(shareText);
+}
+
+function copyToClipboard(text) {
+  // 클립보드 복사 API 사용
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showShareNotification('복사됨! 🎉');
+    }).catch(() => {
+      fallbackCopyToClipboard(text);
+    });
+  } else {
+    fallbackCopyToClipboard(text);
+  }
+}
+
+function fallbackCopyToClipboard(text) {
+  // 구형 브라우저 대응
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showShareNotification('복사됨! 🎉');
+  } catch (err) {
+    alert('클립보드 복사에 실패했습니다.');
+  }
+  document.body.removeChild(textarea);
+}
+
+function showShareNotification(message) {
+  // 토스트 알림 표시
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--brand);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 2000;
+    font-weight: 600;
+    animation: slideUp 0.3s ease;
+  `;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideDown 0.3s ease';
+    setTimeout(() => document.body.removeChild(toast), 300);
+  }, 2000);
 }
 
 window.addEventListener('DOMContentLoaded', () => {

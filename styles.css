@@ -10,6 +10,42 @@
   --danger: #ff6b6b;
 }
 
+/* STEP 6: 다크모드 테마 */
+:root.dark-mode {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --brand: #a78bfa;
+  --brand-strong: #c4b5fd;
+  --brand-light: #312e81;
+  --line: #334155;
+  --danger: #f87171;
+}
+
+/* STEP 6: 토스트 알림 애니메이션 */
+@keyframes slideUp {
+  from {
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -607,6 +643,32 @@ html, body {
 
 .btn-danger:hover {
   background: rgba(255, 107, 107, 0.2);
+}
+
+/* STEP 6: 필터 버튼 */
+.filter-btn {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  background: var(--card);
+  border-color: var(--brand);
+  color: var(--text);
+}
+
+.filter-btn.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
 }
 
 /* ===== 하단 탭 네비게이션 ===== */
