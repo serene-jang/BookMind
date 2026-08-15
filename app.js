@@ -52,6 +52,7 @@ function getNextReviewDate(startDate, reviewScheduleDay) {
 }
 
 // ===== STEP 3: AI 퀴즈 생성 =====
+// ===== STEP 4: 개선된 AI 퀴즈 생성 (고도화) =====
 function generateQuiz(bookIdx) {
   const notes = storage.get('notes') || [];
   const books = storage.get('books') || [];
@@ -62,38 +63,64 @@ function generateQuiz(bookIdx) {
     return null;
   }
 
-  // 핵심 단어 추출 (간단한 명사 추출)
-  const keywords = new Set();
+  // 확장된 불용어 리스트
+  const stopwords = [
+    '이것', '그것', '저것', '것', '겠', '했', '있', '되', '같', '또는', '그리고', 
+    '때문', '때문에', '중에', '처럼', '생각', '말', '일', '수', '들', '거', '명',
+    '그', '그곳', '거기', '어디', '뭔가', '뭔가', '아무', '하다', '있다', '되다',
+    '이다', '무엇', '무엇이', '누구', '몇', '어느', '안', '밖', '위', '아래',
+    '앞', '뒤', '옆', '안다', '모르다', '싶다', '같다', '다르다', '높다', '낮다'
+  ];
+  
+  // 단어 빈도 분석을 위한 딕셔너리
+  const wordFreq = {};
+  
   bookNotes.forEach(note => {
-    const text = (note.content + ' ' + note.impressive).split(/[\s,。.!?]+/);
-    text.forEach(word => {
-      if (word.length > 2 && !['이것', '그것', '저것'].includes(word)) {
-        keywords.add(word);
+    // content, impressive, thoughts 모두 분석
+    const fullText = (note.content || '') + ' ' + (note.impressive || '') + ' ' + (note.thoughts || '');
+    const words = fullText.toLowerCase().split(/[\s,。.!?();:\-]+/);
+    
+    words.forEach(word => {
+      // 필터링: 한글/영문/숫자 포함, 길이 2-15, 불용어 제외
+      if (word.length >= 2 && word.length <= 15 && 
+          !stopwords.includes(word) &&
+          word.match(/[가-힣a-zA-Z0-9]/)) {
+        wordFreq[word] = (wordFreq[word] || 0) + 1;
       }
     });
   });
-
-  const keywordArray = Array.from(keywords).slice(0, 10);
-  if (keywordArray.length < 2) {
+  
+  // 빈도 기반 정렬 (높은 빈도부터)
+  const sortedWords = Object.entries(wordFreq)
+    .sort((a, b) => b[1] - a[1])  // 빈도 내림차순
+    .map(entry => entry[0])
+    .slice(0, 20);  // 상위 20개
+  
+  if (sortedWords.length < 2) {
     alert('기록 내용이 너무 짧아서 퀴즈를 만들 수 없습니다.');
     return null;
   }
 
-  // 정답 선택
-  const correctAnswer = keywordArray[Math.floor(Math.random() * keywordArray.length)];
+  // 정답: 빈도 높은 단어들 중에서 선택 (확률적)
+  const correctAnswer = sortedWords[Math.floor(Math.random() * Math.min(5, sortedWords.length))];
   
-  // 오답 생성 (다른 키워드들)
-  const wrongAnswers = keywordArray
-    .filter(k => k !== correctAnswer)
+  // 오답: 정답과 다른 단어들에서 선택
+  const wrongAnswers = sortedWords
+    .filter(w => w !== correctAnswer)
     .sort(() => Math.random() - 0.5)
     .slice(0, 3);
+  
+  if (wrongAnswers.length < 3) {
+    alert('선택지를 만들 수 없습니다. 더 많은 기록을 작성해주세요.');
+    return null;
+  }
 
   // 선택지 섞기
   const options = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
   const correctIdx = options.indexOf(correctAnswer);
 
   const book = books[bookIdx];
-  const question = `'${book.title}'에서 배운 내용 중 다음 중 관련된 것은?`;
+  const question = `'${book.title}'에서 배운 주요 내용은?`;
 
   return {
     bookIdx,
@@ -115,6 +142,87 @@ function saveQuizAnswer(quizIdx, selectedIdx) {
   
   storage.set('quizzes', quizzes);
   return quiz.score;
+}
+
+// ===== STEP 4: 콘텐츠 기반 퀴즈 생성 (고도화) =====
+function generateQuizFromContent() {
+  const contentInput = document.getElementById('content-input').value.trim();
+  
+  if (contentInput.length < 30) {
+    alert('최소 30자 이상 입력해주세요.');
+    return;
+  }
+  
+  // 확장된 불용어 리스트 (generateQuiz와 동일)
+  const stopwords = [
+    '이것', '그것', '저것', '것', '겠', '했', '있', '되', '같', '또는', '그리고', 
+    '때문', '때문에', '중에', '처럼', '생각', '말', '일', '수', '들', '거', '명',
+    '그', '그곳', '거기', '어디', '뭔가', '뭔가', '아무', '하다', '있다', '되다',
+    '이다', '무엇', '무엇이', '누구', '몇', '어느', '안', '밖', '위', '아래',
+    '앞', '뒤', '옆', '안다', '모르다', '싶다', '같다', '다르다', '높다', '낮다'
+  ];
+  
+  // 단어 빈도 분석
+  const wordFreq = {};
+  const words = contentInput.toLowerCase().split(/[\s,。.!?();:\-]+/);
+  
+  words.forEach(word => {
+    if (word.length >= 2 && word.length <= 15 && 
+        !stopwords.includes(word) &&
+        word.match(/[가-힣a-zA-Z0-9]/)) {
+      wordFreq[word] = (wordFreq[word] || 0) + 1;
+    }
+  });
+  
+  // 빈도 기반 정렬
+  const sortedWords = Object.entries(wordFreq)
+    .sort((a, b) => b[1] - a[1])
+    .map(entry => entry[0])
+    .slice(0, 20);
+  
+  if (sortedWords.length < 4) {
+    alert('내용에서 충분한 키워드를 찾을 수 없습니다. 더 자세한 텍스트를 입력해주세요.');
+    return;
+  }
+  
+  // 정답 선택 (빈도 높은 단어 우선)
+  const correctAnswer = sortedWords[Math.floor(Math.random() * Math.min(5, sortedWords.length))];
+  
+  // 오답 생성
+  const wrongAnswers = sortedWords
+    .filter(w => w !== correctAnswer)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+  
+  // 선택지 섞기
+  const options = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
+  const correctIdx = options.indexOf(correctAnswer);
+  
+  const question = '위 텍스트의 주요 내용으로 가장 적절한 것은?';
+  
+  // 퀴즈 저장
+  const quiz = {
+    question,
+    options,
+    correctIdx,
+    userAnswer: -1,
+    score: 0,
+    date: new Date().toISOString(),
+    sourceType: 'content',
+    sourceText: contentInput.substring(0, 200)  // 처음 200자만 저장
+  };
+  
+  const quizzes = storage.get('quizzes') || [];
+  quizzes.push(quiz);
+  storage.set('quizzes', quizzes);
+  
+  // 입력 필드 초기화
+  document.getElementById('content-input').value = '';
+  
+  // 퀴즈 탭으로 자동 전환
+  alert('✨ 퀴즈가 생성되었습니다! 퀴즈 탭에서 풀어보세요.');
+  switchTab('quiz');
+  renderQuiz();
 }
 
 // ===== STEP 3: 피드백 생성 =====
@@ -434,6 +542,7 @@ function renderRecord() {
           <p class="note-preview">${previewText}...</p>
         </div>
         <div style="display: flex; gap: 6px;">
+          <button class="btn" onclick="showFeedbackModal(${idx})" style="padding: 6px 8px; font-size: 12px;">🎯 피드백</button>
           <button class="btn" onclick="editNote(${idx})" style="padding: 6px 8px; font-size: 12px;">수정</button>
           <button class="btn" onclick="deleteNote(${idx})" style="padding: 6px 8px; font-size: 12px;">삭제</button>
         </div>
@@ -787,6 +896,63 @@ function clearAllData() {
     renderMy();
     alert('모든 데이터가 삭제되었습니다.');
   }
+}
+
+// ===== STEP 4: 피드백 모달 =====
+function showFeedbackModal(noteIdx) {
+  const notes = storage.get('notes') || [];
+  const note = notes[noteIdx];
+  const feedback = generateFeedback(noteIdx);
+  
+  const modalEl = document.getElementById('feedback-modal');
+  const issuesHTML = feedback.issues.map(issue => `
+    <div class="issue-item">
+      <strong>⚠️ ${issue.message}</strong>
+    </div>
+  `).join('');
+  
+  const suggestionsHTML = feedback.suggestions.map(suggestion => `
+    <div class="suggestion-item">${suggestion}</div>
+  `).join('');
+  
+  modalEl.innerHTML = `
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">📊 피드백 분석</h2>
+        <button onclick="closeFeedbackModal()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <p style="color: #6b7280; font-size: 14px;">
+          작성일: ${new Date(note.date).toLocaleDateString('ko-KR')}
+        </p>
+        <p style="color: #2d2d3d; line-height: 1.6; max-height: 100px; overflow-y: auto; background: #f8f7ff; padding: 12px; border-radius: 8px;">
+          ${note.content}
+        </p>
+      </div>
+      
+      ${issuesHTML.length > 0 ? `
+        <h3 style="margin: 20px 0 12px; color: #ef4444;">확인할 부분:</h3>
+        <div style="margin-bottom: 20px;">
+          ${issuesHTML}
+        </div>
+      ` : ''}
+      
+      <h3 style="margin: 20px 0 12px; color: #7c5cde;">개선 제안:</h3>
+      <div>
+        ${suggestionsHTML}
+      </div>
+      
+      <button onclick="closeFeedbackModal()" class="btn btn-primary" style="width: 100%; margin-top: 20px;">닫기</button>
+    </div>
+  `;
+  
+  modalEl.classList.add('active');
+}
+
+function closeFeedbackModal() {
+  const modalEl = document.getElementById('feedback-modal');
+  modalEl.classList.remove('active');
 }
 
 // ===== 앱 초기화 =====

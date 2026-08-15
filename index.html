@@ -162,6 +162,19 @@
               <p class="muted">작성한 기록이 없습니다.</p>
             </div>
           </div>
+
+          <!-- 콘텐츠 기반 퀴즈 (STEP 4) -->
+          <div class="record-section">
+            <h2 class="section-title">📄 콘텐츠로 퀴즈 생성</h2>
+            <div class="content-input-form">
+              <label>텍스트 입력 (또는 복사&붙여넣기)</label>
+              <textarea id="content-input" placeholder="이 곳에 책 내용, 기사, 또는 학습 자료를 붙여넣고 퀴즈를 생성해보세요. 최소 30자 이상 입력해주세요."></textarea>
+              
+              <button class="btn btn-primary" onclick="generateQuizFromContent()" style="width: 100%; margin-top: 12px;">
+                ✨ 이 텍스트로 퀴즈 생성하기
+              </button>
+            </div>
+          </div>
         </section>
 
         <!-- 퀴즈 탭 (STEP 3) -->
@@ -248,6 +261,10 @@
           <span class="nav-label">마이</span>
         </button>
       </nav>
+    </div>
+
+    <!-- 피드백 모달 (STEP 4) -->
+    <div id="feedback-modal" class="feedback-modal" onclick="if(event.target === this) closeFeedbackModal()">
     </div>
 
     <script src="app.js"></script>
