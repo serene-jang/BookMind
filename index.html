@@ -3,32 +3,229 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BookMind UI Prototype</title>
+    <title>BookMind - 독서와 기억</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="page">
-      <nav class="top-menu" aria-label="기능 메뉴">
-        <button class="menu-item" data-screen="ai-note">AI 독서 노트</button>
-        <button class="menu-item" data-screen="ai-quiz">AI 독서 퀴즈</button>
-        <button class="menu-item" data-screen="memory-report">AI 기능 복습</button>
-        <button class="menu-item" data-screen="essay-refine">AI 독후감 도우미</button>
-        <button class="menu-item" data-screen="load-file">AI 필사 불러오기</button>
-        <button class="menu-item" data-screen="save-copy">AI 필사 저장</button>
+    <div class="app-container">
+      <!-- 메인 콘텐츠 -->
+      <main class="main-content">
+        <!-- 홈 탭 -->
+        <section id="tab-home" class="tab-content active">
+          <div class="tab-header">
+            <h1>안녕하세요! 👋</h1>
+          </div>
+
+          <div class="home-section">
+            <h2 class="section-title">📖 오늘의 독서</h2>
+            <div class="today-book" id="today-book">
+              <p class="muted">아직 등록된 책이 없습니다.</p>
+            </div>
+          </div>
+
+          <div class="home-section">
+            <h2 class="section-title">🧠 오늘 복습할 책</h2>
+            <div class="review-list" id="review-list">
+              <p class="muted">복습할 책이 없습니다.</p>
+            </div>
+            <button class="btn btn-primary" onclick="switchTab('memory')">복습하기 →</button>
+          </div>
+
+          <div class="home-section">
+            <h2 class="section-title">기억률</h2>
+            <div class="memory-stat">
+              <div class="memory-circle">
+                <span class="memory-percent" id="avg-memory">0</span>
+                <span class="memory-label">%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-section">
+            <h2 class="section-title">빠른 기능</h2>
+            <div class="quick-actions">
+              <button class="quick-btn" onclick="switchTab('record')">
+                <span class="quick-icon">✍️</span>
+                <span class="quick-label">독서 기록</span>
+              </button>
+              <button class="quick-btn" onclick="switchTab('books')">
+                <span class="quick-icon">📚</span>
+                <span class="quick-label">내 책</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 내 책 탭 -->
+        <section id="tab-books" class="tab-content">
+          <div class="tab-header">
+            <h1>📚 내 책</h1>
+            <button class="btn btn-primary" onclick="openAddBookForm()">+ 책 추가</button>
+          </div>
+
+          <div class="book-add-form" id="book-add-form" style="display: none;">
+            <div class="form-group">
+              <label>책 제목</label>
+              <input type="text" id="book-title" placeholder="책 제목을 입력하세요">
+            </div>
+            <div class="form-group">
+              <label>저자</label>
+              <input type="text" id="book-author" placeholder="저자명을 입력하세요">
+            </div>
+            <div class="form-group">
+              <label>읽기 시작한 날짜</label>
+              <input type="date" id="book-start-date">
+            </div>
+            <div class="form-group">
+              <label>상태</label>
+              <select id="book-status">
+                <option value="reading">읽는 중</option>
+                <option value="completed">완독</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" onclick="saveBook()">저장</button>
+              <button class="btn" onclick="closeAddBookForm()">취소</button>
+            </div>
+          </div>
+
+          <div class="book-list" id="book-list">
+            <p class="muted">등록된 책이 없습니다.</p>
+          </div>
+        </section>
+
+        <!-- 기억 탭 -->
+        <section id="tab-memory" class="tab-content">
+          <div class="tab-header">
+            <h1>🧠 나의 기억</h1>
+          </div>
+
+          <div class="memory-section">
+            <h2 class="section-title">복습 스케줄</h2>
+            <div class="review-schedule" id="review-schedule">
+              <p class="muted">복습할 책이 없습니다.</p>
+            </div>
+          </div>
+
+          <div class="memory-section">
+            <h2 class="section-title">책별 기억률</h2>
+            <div class="memory-list" id="memory-list">
+              <p class="muted">아직 분석 데이터가 없습니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 기록 탭 -->
+        <section id="tab-record" class="tab-content">
+          <div class="tab-header">
+            <h1>✍️ 독서 기록</h1>
+          </div>
+
+          <div class="record-section">
+            <h2 class="section-title">독서 노트</h2>
+            <div class="note-form">
+              <label>책 선택</label>
+              <select id="note-book-select">
+                <option value="">책을 선택하세요</option>
+              </select>
+
+              <label>핵심 내용</label>
+              <textarea id="note-content" placeholder="이 책에서 배운 핵심 내용을 정리하세요"></textarea>
+
+              <label>인상 깊은 부분</label>
+              <textarea id="note-impressive" placeholder="마음에 남는 구절이나 장면을 적어보세요"></textarea>
+
+              <label>나의 생각</label>
+              <textarea id="note-thoughts" placeholder="이 책을 읽고 든 생각을 자유롭게 적으세요"></textarea>
+
+              <label>별점</label>
+              <div class="rating-input">
+                <input type="range" id="note-rating" min="0" max="5" step="0.5" value="3">
+                <span id="rating-display">⭐ 3.0</span>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn btn-primary" onclick="saveNote()">저장</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="record-section">
+            <h2 class="section-title">내 기록</h2>
+            <div class="notes-list" id="notes-list">
+              <p class="muted">작성한 기록이 없습니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 마이 탭 -->
+        <section id="tab-my" class="tab-content">
+          <div class="tab-header">
+            <h1>👤 마이페이지</h1>
+          </div>
+
+          <div class="my-section">
+            <h2 class="section-title">통계</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span class="stat-value" id="stat-books">0</span>
+                <span class="stat-label">등록한 책</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-value" id="stat-notes">0</span>
+                <span class="stat-label">작성한 노트</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-value" id="stat-reviews">0</span>
+                <span class="stat-label">완료한 복습</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="my-section">
+            <h2 class="section-title">내 정보</h2>
+            <div class="info-card">
+              <p><strong>앱 이름:</strong> BookMind</p>
+              <p><strong>슬로건:</strong> "읽고 끝내지 말고, 오래 기억하자!"</p>
+              <p><strong>버전:</strong> 0.1.0 (STEP 1)</p>
+            </div>
+          </div>
+
+          <div class="my-section">
+            <h2 class="section-title">데이터 관리</h2>
+            <div class="data-actions">
+              <button class="btn" onclick="exportData()">📥 데이터 내보내기</button>
+              <button class="btn btn-danger" onclick="clearAllData()">🗑️ 모든 데이터 삭제</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- 하단 탭 네비게이션 -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-tab="home" onclick="switchTab('home')">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">홈</span>
+        </button>
+        <button class="nav-item" data-tab="books" onclick="switchTab('books')">
+          <span class="nav-icon">📚</span>
+          <span class="nav-label">내 책</span>
+        </button>
+        <button class="nav-item" data-tab="memory" onclick="switchTab('memory')">
+          <span class="nav-icon">🧠</span>
+          <span class="nav-label">기억</span>
+        </button>
+        <button class="nav-item" data-tab="record" onclick="switchTab('record')">
+          <span class="nav-icon">✍️</span>
+          <span class="nav-label">기록</span>
+        </button>
+        <button class="nav-item" data-tab="my" onclick="switchTab('my')">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">마이</span>
+        </button>
       </nav>
+    </div>
 
-      <header class="hero" id="home">
-        <p class="eyebrow">메인 화면</p>
-      </header>
-
-      <section class="core-grid" id="core-grid">
-        <button class="core-card" data-screen="book-add">책 등록하기</button>
-        <button class="core-card" data-screen="book-list">읽은 책 목록 보기</button>
-        <button class="core-card" data-screen="note-open">독서 노트 열기</button>
-        <button class="core-card" data-screen="review-today">오늘 복습 시작</button>
-      </section>
-    </main>
-
-    <script src="script.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
