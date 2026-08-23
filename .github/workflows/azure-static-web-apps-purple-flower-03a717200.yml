@@ -31,6 +31,7 @@ jobs:
           app_location: "/" # App source code path
           api_location: "api" # Api source code path - optional
           output_location: "" # Built app content directory - optional
+          skip_app_build: true # 순수 정적 사이트라 빌드 단계가 필요 없음 (Oryx의 오탐 빌드 방지)
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
