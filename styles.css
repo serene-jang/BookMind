@@ -316,6 +316,65 @@ html, body {
   margin-top: 14px;
 }
 
+/* 알라딘 도서 검색 결과 */
+.aladin-results {
+  margin-top: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.aladin-result-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.aladin-result-item:last-child {
+  border-bottom: none;
+}
+
+.aladin-result-item:hover {
+  background: rgba(124, 92, 222, 0.08);
+}
+
+.aladin-result-cover {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.aladin-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aladin-result-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aladin-result-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .book-list {
   display: grid;
   gap: 12px;

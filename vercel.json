@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/search-book.py": {
+      "runtime": "python3.12"
+    }
+  }
+}

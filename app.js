@@ -3,6 +3,8 @@
  * AI 퀴즈 + 서술형 개선 + PDF 지원
  */
 
+// 알라딘 API 키는 서버(server.py)가 .env에서 읽어 보관하며 프론트엔드에는 노출되지 않는다
+
 // ===== 저장소 유틸 =====
 const storage = {
   get(key) {
@@ -857,6 +859,91 @@ function renderMy() {
   
   // ===== STEP 6: 백업 정보 표시 =====
   updateBackupInfo();
+}
+
+// ===== 알라딘 도서 검색 API (서버 프록시 경유) =====
+async function searchAladinBooks() {
+  const query = document.getElementById('book-title').value.trim();
+  const resultsEl = document.getElementById('aladin-search-results');
+
+  if (!query) {
+    alert('검색할 책 제목을 입력해주세요.');
+    return;
+  }
+
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = '<p class="muted" style="margin: 8px;">검색 중...</p>';
+
+  try {
+    const response = await fetch(`/api/search-book?query=${encodeURIComponent(query)}`);
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      resultsEl.innerHTML = `<p class="muted" style="margin: 8px; color: #dc2626;">검색 실패: ${data.error || '알 수 없는 오류'}</p>`;
+      return;
+    }
+
+    if (data.errorCode) {
+      resultsEl.innerHTML = `<p class="muted" style="margin: 8px; color: #dc2626;">검색 실패: ${data.errorMessage || '알 수 없는 오류'}</p>`;
+      return;
+    }
+
+    const items = data.item || [];
+    if (items.length === 0) {
+      resultsEl.innerHTML = '<p class="muted" style="margin: 8px;">검색 결과가 없습니다.</p>';
+      return;
+    }
+
+    window.__aladinSearchItems = items;
+
+    resultsEl.innerHTML = items.map((item, idx) => `
+      <div class="aladin-result-item" onclick="selectAladinResult(${idx})">
+        ${item.cover ? `<img src="${item.cover}" alt="" class="aladin-result-cover">` : ''}
+        <div class="aladin-result-info">
+          <p class="aladin-result-title">${item.title || ''}</p>
+          <p class="aladin-result-meta">${(item.author || '').split(',')[0]} · ${item.publisher || ''}</p>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    resultsEl.innerHTML = `<p class="muted" style="margin: 8px; color: #dc2626;">검색 중 오류가 발생했습니다: ${error.message} (server.py로 실행 중인지 확인하세요)</p>`;
+  }
+}
+
+function selectAladinResult(idx) {
+  const items = window.__aladinSearchItems || [];
+  const item = items[idx];
+  if (!item) return;
+
+  document.getElementById('book-title').value = (item.title || '').split('-')[0].trim();
+  document.getElementById('book-author').value = (item.author || '').split('(')[0].trim();
+
+  const categoryGuess = guessCategoryFromAladin(item.categoryName || '');
+  if (categoryGuess) {
+    document.getElementById('book-category').value = categoryGuess;
+  }
+
+  const resultsEl = document.getElementById('aladin-search-results');
+  resultsEl.style.display = 'none';
+  resultsEl.innerHTML = '';
+}
+
+function guessCategoryFromAladin(categoryName) {
+  const map = {
+    '소설': '소설',
+    '시/에세이': '소설',
+    '역사': '역사',
+    '과학': '과학',
+    '자기계발': '자기개발',
+    '경제경영': '자기개발',
+    '컴퓨터': '기술',
+    'IT': '기술',
+    '예술': '예술',
+    '만화': '예술'
+  };
+
+  const found = Object.keys(map).find(key => categoryName.includes(key));
+  return found ? map[found] : '';
 }
 
 // ===== STEP 5: 주별 성과 계산 =====
